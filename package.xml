@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>needs</name>
+  <name>test_turtle_mani</name>
   <version>1.0.0</version>
-  <description>The needs package</description>
+  <description>The test_turtle_mani package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

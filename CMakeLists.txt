@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(needs)
+project(test_turtle_mani)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -25,7 +25,7 @@ set(${PROJECT_NAME}_SRCS
 )
 
 set(${PROJECT_NAME}_HDRS
-  include/${PROJECT_NAME}/needs.hpp
+  include/${PROJECT_NAME}/test_turtle_mani.hpp
 )
 
 set(${PROJECT_NAME}_INCLUDE_DIRECTORIES
@@ -226,9 +226,9 @@ include_directories(
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
-add_executable(needs src/needs.cpp)
-add_dependencies(needs ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(needs ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+add_executable(test_turtle_mani src/test_turtle_mani.cpp)
+add_dependencies(test_turtle_mani ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_turtle_mani ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
