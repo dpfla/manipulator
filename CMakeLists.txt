@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   sensor_msgs
+  message_generation
   moveit_msgs
   moveit_core
   moveit_ros_planning
@@ -21,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 
 set(${PROJECT_NAME}_SRCS
-  src/needs.cpp
+  src/test_turtle_mani.cpp
 )
 
 set(${PROJECT_NAME}_HDRS
@@ -68,12 +69,11 @@ endif()
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+##Generate messages in the 'msg' folder
+ add_message_files(
+   FILES
+   Msg.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -90,10 +90,13 @@ endif()
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   moveit_msgs#   sensor_msgs#   std_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   geometry_msgs   
+   moveit_msgs
+   sensor_msgs
+   std_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -130,12 +133,14 @@ catkin_package(
     geometry_msgs
     roscpp 
     std_msgs 
-    sensor_msgs 
+    sensor_msgs
+    message_runtime 
     moveit_msgs
     moveit_core
     moveit_ros_planning
     moveit_ros_planning_interface
   DEPENDS EIGEN3
+  EXPORTED_TARGETS ${PROJECT_NAME}_generate_messages_cpp
 )
 
 set(_cmake_current_binary_dir "${CMAKE_CURRENT_BINARY_DIR}")
@@ -226,17 +231,16 @@ include_directories(
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
-add_executable(test_turtle_mani src/test_turtle_mani.cpp)
-add_dependencies(test_turtle_mani ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_turtle_mani ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+#add_executable(test_turtle_mani src/test_turtle_mani.cpp)
+#add_dependencies(test_turtle_mani ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(test_turtle_mani ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
 add_executable(test_turtle_mani_with_kine src/test_turtle_mani_with_kine.cpp)
 add_dependencies(test_turtle_mani_with_kine ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(test_turtle_mani_with_kine ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 #############
 ## Testing ##
 #############
