@@ -63,10 +63,10 @@ public:
 	OpenMani();
 	~OpenMani();
 
-	bool setJointSpacePath(std::vector<float> kinematics_pose, float path_time);
-	bool setToolControl(std::vector<float> joint_angle);
+	bool setJointSpacePath(std::vector<float> kinematics_pose, double path_time);
+	bool setToolControl(std::vector<double> joint_angle);
 	void updateRobotState();
-	bool setTaskSpacePath(std::vector<float> kinematics_pose, float path_time);
+	bool setTaskSpacePath(std::vector<float> kinematics_pose, double path_time);
 	void init_sub_pub();
 	void Ar_Marker_Callback(const test_turtle_mani::Msg &msg);
 	void Lift_Bot_Callback(const test_turtle_mani::Msg &msg);
