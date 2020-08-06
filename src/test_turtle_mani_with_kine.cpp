@@ -42,27 +42,22 @@ void OpenMani::init_sub_pub()
 	current_mani_state_pub_ = n.advertise<std_msgs::Int32>("/current_mani_state", 1000);
 }
 
-void OpenMani::Kinematic_Pose_Callback(const std_msgs::Float32 &test_msg)
+void OpenMani::Kinematic_Pose_Callback(const test_turtle_mani::Msg &msg)
 {
-	float msg[3];
-	for(int i = 0; i<3; i++){
-		msg[i] = test_msg.d[i];
-	}
-
-	kinematic_pose_sub.push_back(msg[0])
-	kinematic_pose_sub.push_back(msg[1])
-	kinematic_pose_sub.push_back(msg[2])
+	kinematic_pose_sub.push_back(msg.t_x);
+	kinematic_pose_sub.push_back(msg.t_y);
+	kinematic_pose_sub.push_back(msg.t_z);
 }
 
-void OpenMani::Ar_Marker_Callback(const std_msgs::Int32 &test_msg)
+void OpenMani::Ar_Marker_Callback(const test_turtle_mani::Msg &msg)
 {
-	ar_marker_id = test_msg.data;
+	ar_marker_id = msg.id;
 	ROS_INFO("sub: %d", ar_marker_id);
 }
 
-void OpenMani::Lift_Bot_Callback(const std_msgs::Int32 &test_msg)
+void OpenMani::Lift_Bot_Callback(const test_turtle_mani::Msg &msg)
 {
-	bot_ready = test_msg.data;
+	bot_ready = msg.data;
 	ROS_INFO("sub: %d", bot_ready);
 }
 
@@ -161,20 +156,20 @@ void OpenMani::Pick_Up_Small_Box()
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
 
-	switch(count){
+	switch(small_box_count){
 	case 0: // home pose
 		/*kinematics_position.push_back( 0.270);
 		kinematics_position.push_back( 0.000);
 		kinematics_position.push_back( 0.085);*/
 		setTaskSpacePath(kinematic_pose_sub, 2.0);
-		count ++;
+		small_box_count ++;
 		ROS_INFO("case 0");
 		break;
 		
 	case 1:
 		kinematics_orientation.push_back(-0.01);
 		setToolControl(kinematics_orientation);
-		count++;
+		small_box_count ++;
 		ROS_INFO("case 1");
 		break;
 		
@@ -183,7 +178,7 @@ void OpenMani::Pick_Up_Small_Box()
 		kinematics_position.push_back(  0.054);
 		kinematics_position.push_back(  0.120);
 		setTaskSpacePath(kinematics_position, 2.0);
-		count ++;
+		small_box_count ++;
 		ROS_INFO("case 2");
 		break;
 
@@ -195,7 +190,6 @@ void OpenMani::Pick_Up_Small_Box()
 		ROS_INFO("case 3");
 		current_mani_state.data = RELEASE_SAMLL_BOX;
 		current_mani_state_pub_.publish(current_mani_state);
-		count = 0;
 		break;
 	}
 }
@@ -205,19 +199,19 @@ void OpenMani::Pick_Up_Large_Box()
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
 
-	switch(count){
+	switch(pick_large_box_count){
 	case 0: // home pose
 		/*kinematics_position.push_back( 0.270);
 		kinematics_position.push_back( 0.000);
 		kinematics_position.push_back( 0.085);*/
 		setTaskSpacePath(kinematic_pose_sub, 2.0);
-		count ++;
+		pick_large_box_count ++;
 		break;
 		
 	case 1:
 		kinematics_orientation.push_back(-0.01);
 		setToolControl(kinematics_orientation);
-		mode = 3;
+		pick_large_box_count ++;
 		break;
 	
 	case 2:
@@ -228,7 +222,6 @@ void OpenMani::Pick_Up_Large_Box()
 		current_mani_state.data = PICK_UP_LARGE_BOX;
 		current_mani_state_pub_.publish(current_mani_state);
 		mode = WAIT_BOT;
-		count = 0;
 		break;
 	}
 }
@@ -238,14 +231,14 @@ void OpenMani::Wait_Bot()
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
 
-	switch(count){
+	switch(wait_bot_count){
 	case 0: // home pose
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.00);
 		setTaskSpacePath(kinematics_position, 2.0);
-		count ++;
-		ROS_INFO("case 0");
+		wait_bot_count ++;
+		ROS_INFO("wait_bot_count 0");
 		break;
 		
 	case 1:
@@ -258,9 +251,8 @@ void OpenMani::Wait_Bot()
 		
 		mode = RELEASE_BOX;
 		
-		ROS_INFO("case 1");
+		ROS_INFO("wait_bot_count 1");
 		bot_ready = -1;
-		count = 0;
 		break;
 
 	}
@@ -272,20 +264,21 @@ void OpenMani::Release_Box()
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
 
-	switch(count){
+	switch(release_box_count){
 	case 0: // home pose
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.00);
 		setTaskSpacePath(kinematics_position, 2.0);
-		count ++;
-		ROS_INFO("case 0");
+		release_box_count ++;
+		ROS_INFO("release_box_count 0");
 		break;
 		
 	case 1:
 		kinematics_orientation.push_back(-0.01);
 		setToolControl(kinematics_orientation);	
-		ROS_INFO("case 1");
+		release_box_count ++;
+		ROS_INFO("release_box_count 1");
 		break;
 	
 	case 2:
@@ -295,7 +288,7 @@ void OpenMani::Release_Box()
 		setTaskSpacePath(kinematics_position, 2.0);
 		current_mani_state.data = RELEASE_LARGE_BOX;
 		current_mani_state_pub_.publish(current_mani_state);
-		ROS_INFO("case 0");
+		ROS_INFO("release_box_count 2");
 		count = 0;
 		break;
 	}
@@ -342,6 +335,8 @@ int main(int argc, char **argv){
 	while (ros::ok())
 	{
 		ros::spinOnce();
+		
+		
 	}
 }
 

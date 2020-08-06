@@ -7,6 +7,8 @@ void updateRobotState();
 void demoSequence();
 */
 
+std::vector<float> kinematic_pose_sub;
+
 OpenMani::OpenMani()
 :n(""),
  count(0),
@@ -37,32 +39,20 @@ OpenMani::~OpenMani()
 	}
 }
 
-bool OpenMani::setJointSpacePath(std::vector<double> joint_angle, double path_time)
+bool OpenMani::setJointSpacePath(std::vector<float> kinematics_pose, double path_time)
 {
 	ros::AsyncSpinner spinner(1); 
 	spinner.start();
 
-	// Next get the current set of joint values for the group.
-	//JointModelGroup - moveit_fun ,Get a joint group from this model (by name) 
-	//getCurrentState() - Get the current state of the robot. move_Group.cpp 2091
-
-	const robot_state::JointModelGroup* joint_model_group = move_group_->getCurrentState()->getJointModelGroup("arm");
-	  
-	moveit::core::RobotStatePtr current_state = move_group_->getCurrentState();
-
-	//copyJointValueTargetPositions -For a given group, copy the position values of the variables
-	// that make up the group into another location, in the order that the variables are found in the group. 
-	std::vector<double> joint_group_positions;
-	current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
-
-	// Now, let's modify one of the joints, plan to the new joint space goal and visualize the plan.
-	joint_group_positions[0] = joint_angle.at(0);  // radians
-	joint_group_positions[1] = joint_angle.at(1);  // radians
-	joint_group_positions[2] = joint_angle.at(2);  // radians
-	joint_group_positions[3] = joint_angle.at(3);  // radians
+	geometry_msgs::Pose target_pose;
+	target_pose.position.x = kinematics_pose.at(0);
+	target_pose.position.y = kinematics_pose.at(1);
+	target_pose.position.z = kinematics_pose.at(2);
 	
-	//setJointValueTarget - capture
-	move_group_->setJointValueTarget(joint_group_positions);
+	move_group_->setPositionTarget(
+		target_pose.position.x,
+		target_pose.position.y,
+		target_pose.position.z);
 
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	bool success = (move_group_->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -72,11 +62,8 @@ bool OpenMani::setJointSpacePath(std::vector<double> joint_angle, double path_ti
 	move_group_->move();
 
 	spinner.stop();
-	
-	updateRobotState();
-
 	return true;
-}
+	}
 
 bool OpenMani::setToolControl(std::vector<double> joint_angle)
 {
@@ -144,17 +131,16 @@ void OpenMani::updateRobotState()
 void OpenMani::demoSequence()
 {
 	std::vector<double> joint_angle;
-	std::vector<double> kinematics_position;
+	std::vector<float> kinematics_position;
 	std::vector<double> kinematics_orientation;
 	std::vector<double> gripper_value;
 
 	switch(count){
 	case 0: // home pose
-		joint_angle.push_back( 0.00);
-		joint_angle.push_back( 1.41);
-		joint_angle.push_back( -0.76);
-		joint_angle.push_back( -0.60);
-		setJointSpacePath(joint_angle, 2.0);
+		kinematics_position.push_back( 0.00);
+		kinematics_position.push_back( 0.00);
+		kinematics_position.push_back( 0.00);
+		setJointSpacePath(kinematics_position, 2.0);
 		count ++;
 		ROS_INFO("case 0");
 		break;
@@ -167,11 +153,10 @@ void OpenMani::demoSequence()
 		break;
 
 	case 2: // initial pose
-		joint_angle.push_back( 0.00);
-		joint_angle.push_back( 0.50);
-		joint_angle.push_back( 0.17);
-		joint_angle.push_back( -0.69);
-		setJointSpacePath(joint_angle, 2.0);
+		kinematics_position.push_back( 0.00);
+		kinematics_position.push_back( 0.00);
+		kinematics_position.push_back( 0.085);
+		setJointSpacePath(kinematic_pose_sub, 2.0);
 		count ++;
 		ROS_INFO("case 2");
 		break;
@@ -182,21 +167,28 @@ void OpenMani::demoSequence()
 		count=0;
 		ROS_INFO("case 3");
 		break;
-	} // end of switch-case
+	}
 
 }
 
 void OpenMani::publishCallback(const ros::TimerEvent&)
 {
-	if (mode == DEMO_START)
+	//ROS_INFO("%d", kinematic_pose_sub.empty());
+	if (!kinematic_pose_sub.empty())
 	{
 		demoSequence();
 	}
 }
 
+void PoseCallback(const test_turtle_mani::Msg &msg){
+	kinematic_pose_sub.push_back(msg.t_x);
+	kinematic_pose_sub.push_back(msg.t_y);
+	kinematic_pose_sub.push_back(msg.t_z);
+}
+
 int main(int argc, char **argv){
     
-	ros::init(argc, argv,"needs");
+	ros::init(argc, argv,"test_turtle_mani");
 	ros::AsyncSpinner spinner(1); 
 	spinner.start();
 	
@@ -210,6 +202,7 @@ int main(int argc, char **argv){
 	
 	ROS_INFO("11");
 	ros::Timer publish_timer = nh.createTimer(ros::Duration(4), &OpenMani::publishCallback, &OpenMani);
+	ros::Subscriber sub_ = nh.subscribe("/rvecs_msg", 10, PoseCallback);
 	ROS_INFO("11");
 	//ros::start();
 	while (ros::ok())
