@@ -1,11 +1,14 @@
-#include "test_turtle_mani.hpp"
+#include "test_turtle_mani_with_kine.hpp"
 
 OpenMani::OpenMani()
 :n("OpenMani"),
- count(0),
+ small_box_count(0),
+ pick_large_box_count(0),
+ wait_bot_count(0),
+ release_box_count(0),
  mode(0),
  bot_ready(-1),
- ar_marker_id(-1)
+ box_id(-1)
 {
 	joint_name.push_back("joint1");
 	joint_name.push_back("joint2"); 
@@ -21,7 +24,7 @@ OpenMani::OpenMani()
 	move_group_ = new moveit::planning_interface::MoveGroupInterface(planning_group_name);
 	move_group2_ = new moveit::planning_interface::MoveGroupInterface(planning_group_name2);
 	
-	init_sub_pub();
+	init();
 }
 
 
@@ -34,31 +37,60 @@ OpenMani::~OpenMani()
 	}
 }
 
-void OpenMani::init_sub_pub()
+void OpenMani::init()
 {
 	kinematic_pose_sub_ = n.subscribe("/rvecs_msg", 10, &OpenMani::Kinematic_Pose_Callback, this);
-	ar_marker_sub_ = n.subscribe("/ar_marker", 10, &OpenMani::Ar_Marker_Callback, this);
+	box_id_sub_ = n.subscribe("/box_id", 10, &OpenMani::Box_ID_Callback, this);
 	lift_bot_state_sub_ = n.subscribe("/lift_bot", 10, &OpenMani::Lift_Bot_Callback, this);
 	current_mani_state_pub_ = n.advertise<std_msgs::Int32>("/current_mani_state", 1000);
 }
 
 void OpenMani::Kinematic_Pose_Callback(const test_turtle_mani::Msg &msg)
 {
-	kinematic_pose_sub.push_back(msg.t_x);
-	kinematic_pose_sub.push_back(msg.t_y);
-	kinematic_pose_sub.push_back(msg.t_z);
+	std::vector<float> kinematic_pose_;
+	
+	kinematic_pose_.push_back(msg.t_x);
+	kinematic_pose_.push_back(msg.t_y);
+	kinematic_pose_.push_back(msg.t_z);
+
+	kinematic_pose_sub.assign(kinematic_pose_.begin(), kinematic_pose_.end());
 }
 
-void OpenMani::Ar_Marker_Callback(const test_turtle_mani::Msg &msg)
+void OpenMani::Box_ID_Callback(const test_turtle_mani::Msg &msg)
 {
-	ar_marker_id = msg.id;
-	ROS_INFO("sub: %d", ar_marker_id);
+	box_id = msg.id;
+	ROS_INFO("sub: %d", box_id);
 }
 
 void OpenMani::Lift_Bot_Callback(const test_turtle_mani::Msg &msg)
 {
 	bot_ready = msg.data;
 	ROS_INFO("sub: %d", bot_ready);
+}
+
+void OpenMani::Publisher()
+{
+	if(small_box_count == 3 && pick_large_box_count == 0 && wait_bot_count == 0 && release_box_count == 0)
+		{
+			current_mani_state.data = RELEASE_SAMLL_BOX;
+			current_mani_state_pub_.publish(current_mani_state);
+		}
+		
+	else if(small_box_count == 0 && pick_large_box_count == 2 && wait_bot_count == 0 && release_box_count == 0)
+		{
+			current_mani_state.data = RELEASE_SAMLL_BOX;
+			current_mani_state_pub_.publish(current_mani_state);
+		}
+	else if(small_box_count == 0 && pick_large_box_count == 2 && wait_bot_count == 0 && release_box_count == 0)
+		{
+			current_mani_state.data = RELEASE_SAMLL_BOX;
+			current_mani_state_pub_.publish(current_mani_state);
+		}
+	else if(small_box_count == 0 && pick_large_box_count == 2 && wait_bot_count == 0 && release_box_count == 0)
+		{
+			current_mani_state.data = RELEASE_SAMLL_BOX;
+			current_mani_state_pub_.publish(current_mani_state);
+		}
 }
 
 bool OpenMani::setTaskSpacePath(std::vector<double> kinematics_pose, double path_time)
@@ -185,11 +217,7 @@ void OpenMani::Pick_Up_Small_Box()
 	case 3:
 		kinematics_orientation.push_back(0.01);
 		setToolControl(kinematics_orientation);
-		current_mani_state.data = "release box";
-		current_mani_state_pub_.publish(current_mani_state);
 		ROS_INFO("case 3");
-		current_mani_state.data = RELEASE_SAMLL_BOX;
-		current_mani_state_pub_.publish(current_mani_state);
 		break;
 	}
 }
@@ -247,7 +275,7 @@ void OpenMani::Wait_Bot()
 		
 		do{
 
-		}while(bot_ready != 1);
+		}while(bot_ready != READY);
 		
 		mode = RELEASE_BOX;
 		
@@ -289,7 +317,6 @@ void OpenMani::Release_Box()
 		current_mani_state.data = RELEASE_LARGE_BOX;
 		current_mani_state_pub_.publish(current_mani_state);
 		ROS_INFO("release_box_count 2");
-		count = 0;
 		break;
 	}
 }
@@ -297,22 +324,26 @@ void OpenMani::Release_Box()
 
 void OpenMani::publishCallback(const ros::TimerEvent&)
 {
-	if (ar_marker_id == DETECT_SMALL_BOX)
+	if (box_id == DETECT_SMALL_BOX)
 	{
+		pick_large_box_count = 0; wait_bot_count = 0; release_box_count = 0;
 		Pick_Up_Small_Box();
 	}
 
-	else if (ar_marker_id == DETECT_LARGE_BOX)
+	else if (box_id == DETECT_LARGE_BOX)
 	{
+		small_box_count = 0; wait_bot_count = 0; release_box_count = 0;
 		Pick_Up_Large_Box();
 	}
 
 	else if (mode == WAIT_BOT)
 	{
+		small_box_count = 0; pick_large_box_count = 0; release_box_count = 0;
 		Wait_Bot();
 	}
 	else if (mode == RELEASE_BOX)
 	{
+		small_box_count = 0; pick_large_box_count = 0; wait_bot_count = 0;
 		Release_Box();
 	}
 }
@@ -323,19 +354,20 @@ int main(int argc, char **argv){
 	ros::AsyncSpinner spinner(1); 
 	spinner.start();
 	
-	OpenMani OpenMani;
+	OpenMani Openmani;
 
 	if ( ! ros::master::check() )
 		return false;
 	
 	ros::NodeHandle nh("");
 	
-	ros::Timer publish_timer = nh.createTimer(ros::Duration(4), &OpenMani::publishCallback, &OpenMani);
+	ros::Timer publish_timer = nh.createTimer(ros::Duration(4), &OpenMani::publishCallback, &Openmani);
 	
 	while (ros::ok())
 	{
 		ros::spinOnce();
 		
+		Openmani.Publisher();
 		
 	}
 }
