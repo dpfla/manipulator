@@ -7,6 +7,7 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float32MultiArray.h>
 #include "test_turtle_mani/Msg.h"
+#include "test_turtle_mani/PoseMsg.h"
 #include <sstream>
 
 #include <eigen3/Eigen/Eigen>
