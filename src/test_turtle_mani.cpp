@@ -34,7 +34,7 @@ OpenMani::~OpenMani()
 	}
 }
 
-bool OpenMani::setJointSpacePath(std::vector<float> kinematics_pose, double path_time)
+bool OpenMani::setJointSpacePath(std::vector<double> kinematics_pose, double path_time)
 {
 	ros::AsyncSpinner spinner(1); 
 	spinner.start();
@@ -126,7 +126,7 @@ void OpenMani::updateRobotState()
 void OpenMani::demoSequence()
 {
 	std::vector<double> joint_angle;
-	std::vector<float> kinematics_position;
+	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
 	std::vector<double> gripper_value;
 
@@ -170,6 +170,7 @@ void OpenMani::publishCallback(const ros::TimerEvent&)
 	//ROS_INFO("%d", kinematic_pose_sub.empty());
 	if (!kinematic_pose_sub.empty())
 	{
+		updateRobotState();
 		demoSequence();
 	}
 }
