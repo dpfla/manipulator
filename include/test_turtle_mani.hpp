@@ -41,7 +41,6 @@ class OpenMani
 private:
 	ros::NodeHandle n;
 	std::vector<std::string> joint_name;
-	std::vector<float> kinematic_pose_sub; 
 	int small_box_count;
 	int pick_large_box_count;
 	int wait_bot_count;
@@ -64,7 +63,7 @@ public:
 	OpenMani();
 	~OpenMani();
 
-	bool setJointSpacePath(std::vector<float> kinematics_pose, double path_time);
+	bool setJointSpacePath(std::vector<double> kinematics_pose, double path_time);
 	bool setToolControl(std::vector<double> joint_angle);
 	void updateRobotState();
 	bool setTaskSpacePath(std::vector<float> kinematics_pose, double path_time);
