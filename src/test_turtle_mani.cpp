@@ -1,7 +1,8 @@
 #include "test_turtle_mani.hpp"
 
-std::vector<float> kinematic_pose_sub;
-ros::Publisher pub_;
+std::vector<double> kinematic_pose_sub;
+std::vector<double> temp_position;
+//ros::Publisher pub_;
 
 OpenMani::OpenMani()
 :n(""),
@@ -53,7 +54,7 @@ bool OpenMani::setJointSpacePath(std::vector<float> kinematics_pose, double path
 	if (success == false)
 	return false;
 
-	//move_group_->move();
+	move_group_->move();
 
 	spinner.stop();
 	return true;
@@ -82,7 +83,7 @@ bool OpenMani::setToolControl(std::vector<double> joint_angle)
 	if (success == false)
 	return false;
 
-	//move_group2_->move();
+	move_group2_->move();
 
 	spinner.stop();
 	return true;  
@@ -104,19 +105,19 @@ void OpenMani::updateRobotState()
 	temp_angle.push_back(jointValues2.at(0));
 
 	geometry_msgs::Pose current_pose = move_group_->getCurrentPose().pose;  
-	std::vector<double> temp_position;
+
 	temp_position.push_back(current_pose.position.x);
 	temp_position.push_back(current_pose.position.y);
 	temp_position.push_back(current_pose.position.z);
 
-	test_turtle_mani::PoseMsg pose_msg;
-	pose_msg.cur_x = (float)temp_position[0];
-	pose_msg.cur_y = (float)temp_position[1];
-	pose_msg.cur_z = (float)temp_position[2];
+	//test_turtle_mani::PoseMsg pose_msg;
+	//pose_msg.cur_x = (float)temp_position[0];
+	//pose_msg.cur_y = (float)temp_position[1];
+	//pose_msg.cur_z = (float)temp_position[2];
 	
-	pub_.publish(pose_msg);
+	//pub_.publish(pose_msg);
 
-	printf("Present Kinematics Position X: %.2lf Y: %.2lf Z: %.2lf\n",
+	printf("CurMani X: %.2lf Y: %.2lf Z: %.2lf\n",
 		temp_position.at(0),
 		temp_position.at(1),
 		temp_position.at(2));
@@ -131,9 +132,9 @@ void OpenMani::demoSequence()
 
 	switch(count){
 	case 0: // home pose
-		kinematics_position.push_back( 0.00);
-		kinematics_position.push_back( 0.00);
-		kinematics_position.push_back( 0.00);
+		kinematics_position.push_back( kinematic_pose_sub[0]+temp_position[1] );
+		kinematics_position.push_back( kinematic_pose_sub[1]+temp_position[2] );
+		kinematics_position.push_back( kinematic_pose_sub[2]+temp_position[0] );
 		setJointSpacePath(kinematics_position, 2.0);
 		count ++;
 		ROS_INFO("case 0");
@@ -146,7 +147,7 @@ void OpenMani::demoSequence()
 		ROS_INFO("case 1");
 		break;
 
-	case 2: // initial pose
+	/*case 2: // initial pose
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.085);
@@ -160,11 +161,8 @@ void OpenMani::demoSequence()
 		setToolControl(joint_angle);
 		count=0;
 		ROS_INFO("case 3");
-		break;
+		break;*/
 	}
-	
-	updateRobotState();
-
 }
 
 void OpenMani::publishCallback(const ros::TimerEvent&)
@@ -177,9 +175,14 @@ void OpenMani::publishCallback(const ros::TimerEvent&)
 }
 
 void PoseCallback(const test_turtle_mani::Msg &msg){
-	kinematic_pose_sub.push_back(msg.t_x);
-	kinematic_pose_sub.push_back(msg.t_y);
-	kinematic_pose_sub.push_back(msg.t_z);
+	
+	std::vector<float> kinematic_pose_;
+	
+	kinematic_pose_.push_back(msg.t_x * -1);  //+y
+	kinematic_pose_.push_back(msg.t_y);  //+z
+	kinematic_pose_.push_back(msg.t_z);  //+x
+
+	kinematic_pose_sub.assign(kinematic_pose_.begin(), kinematic_pose_.end());
 }
 
 int main(int argc, char **argv){
@@ -198,8 +201,8 @@ int main(int argc, char **argv){
 	
 	ROS_INFO("11");
 	ros::Timer publish_timer = nh.createTimer(ros::Duration(4), &OpenMani::publishCallback, &OpenMani);
-	ros::Subscriber sub_ = nh.subscribe("/rvecs_msg", 10, PoseCallback);
-	pub_ = nh.advertise<test_turtle_mani::PoseMsg>("cur_pose", 1000);
+	ros::Subscriber sub_ = nh.subscribe("rvecs_msg", 10, PoseCallback);
+	//pub_ = nh.advertise<test_turtle_mani::PoseMsg>("cur_pose", 1000);
 	ROS_INFO("11");
 	//ros::start();
 	while (ros::ok())
