@@ -140,14 +140,14 @@ void OpenMani::demoSequence()
 		ROS_INFO("case 0");
 		break;
 		
-	case 1:
+	/*case 1:
 		joint_angle.push_back(-0.01);
 		setToolControl(joint_angle);
 		count++;
 		ROS_INFO("case 1");
 		break;
 
-	/*case 2: // initial pose
+	case 2: // initial pose
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.00);
 		kinematics_position.push_back( 0.085);
