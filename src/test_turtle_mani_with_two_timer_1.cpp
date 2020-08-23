@@ -1,4 +1,4 @@
-#include "test_turtle_mani_with_kine.hpp"
+#include "test_turtle_mani_with_two_timer.hpp"
 
 OpenMani::OpenMani()
 :n("OpenMani"),
@@ -8,7 +8,6 @@ OpenMani::OpenMani()
  release_box_count(0),
  mode(0),
  bot_ready(-1),
- arrive_home(-1),
  box_id(-1)
 {
 	joint_name.push_back("joint1");
@@ -24,8 +23,6 @@ OpenMani::OpenMani()
 	
 	move_group_ = new moveit::planning_interface::MoveGroupInterface(planning_group_name);
 	move_group2_ = new moveit::planning_interface::MoveGroupInterface(planning_group_name2);
-		
-	box_pick_up_complete.data = 0;
 	
 	init();
 }
@@ -43,23 +40,26 @@ OpenMani::~OpenMani()
 void OpenMani::init()
 {
 	kinematic_pose_sub_ = n.subscribe("rvecs_msg", 10, &OpenMani::Kinematic_Pose_Callback, this);
-	box_id_sub_ = n.subscribe("box_id", 10, &OpenMani::Box_ID_Callback, this);
-	lift_bot_state_sub_ = n.subscribe("lift_bot", 10, &OpenMani::Lift_Bot_Callback, this);
-	arrive_home_sub_ = n.subscribe("arrive_home", 10, &OpenMani::Arrive_Home_Callback, this);
-	box_pick_up_complete_pub_ = n.advertise<std_msgs::Int32>("box_pick_up_complete", 1000);
-	current_mani_state_pub_ = n.advertise<std_msgs::Int32>("current_mani_state", 1000);
+	box_pick_up_check_sub_ = n.subscribe("bot_pick_up_check", 10, &OpenMani::Box_Pickup_Callback, this);
+	box_id_sub_ = n.subscribe("/box_id", 10, &OpenMani::Box_ID_Callback, this);
+	lift_bot_state_sub_ = n.subscribe("/lift_bot", 10, &OpenMani::Lift_Bot_Callback, this);
+	current_mani_state_pub_ = n.advertise<std_msgs::Int32>("/current_mani_state", 1000);
 }
 
-void OpenMani::Kinematic_Pose_Callback(const geometry_msgs::Pose &msg)
+void OpenMani::Kinematic_Pose_Callback(const test_turtle_mani::Msg &msg)
 {
-	kinematic_pose_sub.push_back(msg.position.x);
-	kinematic_pose_sub.push_back(msg.position.y);
-	kinematic_pose_sub.push_back(msg.position.z);
+	std::vector<float> kinematic_pose_;
+	
+	kinematic_pose_.push_back(msg.t_x);
+	kinematic_pose_.push_back(msg.t_y);
+	kinematic_pose_.push_back(msg.t_z);
+
+	kinematic_pose_sub.assign(kinematic_pose_.begin(), kinematic_pose_.end());
 }
 
-void OpenMani::Arrive_Home_Callback(const test_turtle_mani::Msg &msg){
-	arrive_home = msg.id;
-	ROS_INFO("sub: %d", arrive_home);
+void OpenMani::Box_Pickup_Callback(const test_turtle_mani::Msg &msg){
+	pick_up_check = msg.id;
+	ROS_INFO("sub: %d", pick_up_check);
 }
 
 void OpenMani::Box_ID_Callback(const test_turtle_mani::Msg &msg)
@@ -97,28 +97,28 @@ void OpenMani::Publisher()
 
 bool OpenMani::setTaskSpacePath(std::vector<double> kinematics_pose, double path_time)
 {
-	ros::AsyncSpinner spinner(1); 
-	spinner.start();
+  ros::AsyncSpinner spinner(1); 
+  spinner.start();
 
-	geometry_msgs::Pose target_pose;
-	target_pose.position.x = kinematics_pose.at(0);
-	target_pose.position.y = kinematics_pose.at(1);
-	target_pose.position.z = kinematics_pose.at(2);
+  geometry_msgs::Pose target_pose;
+  target_pose.position.x = kinematics_pose.at(0);
+  target_pose.position.y = kinematics_pose.at(1);
+  target_pose.position.z = kinematics_pose.at(2);
 
-	move_group_->setPositionTarget(
-	target_pose.position.x,
-	target_pose.position.y,
-	target_pose.position.z);
+  move_group_->setPositionTarget(
+    target_pose.position.x,
+    target_pose.position.y,
+    target_pose.position.z);
 
-	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-	bool success = (move_group_->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-	if (success == false)
-	return false;
+  moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+  bool success = (move_group_->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+  if (success == false)
+    return false;
 
-	move_group_->move();
+  move_group_->move();
 
-	spinner.stop();
-	return true;
+  spinner.stop();
+  return true;
 }
 
 
@@ -170,20 +170,18 @@ void OpenMani::Pick_Up_Small_Box()
 		kinematics_orientation.push_back(-0.01);
 		setToolControl(kinematics_orientation);
 		ROS_INFO("case 1");
-		box_pick_up_complete.data = 1;
-		box_pick_up_complete_pub_.publish(box_pick_up_complete);
-		small_box_count ++;
-		break;
+		if(pick_up_check == 1){
+			small_box_count ++;
+			break;
+		}
 		
 	case 2: 
-		if(arrive_home == 1){
-			kinematics_position.push_back( -0.250);
-			kinematics_position.push_back(  0.054);
-			kinematics_position.push_back(  0.120);
-			setTaskSpacePath(kinematics_position, 2.0);
-			small_box_count ++;
-			ROS_INFO("case 2");
-		}
+		kinematics_position.push_back( -0.250);
+		kinematics_position.push_back(  0.054);
+		kinematics_position.push_back(  0.120);
+		setTaskSpacePath(kinematics_position, 2.0);
+		small_box_count ++;
+		ROS_INFO("case 2");
 		break;
 
 	case 3:
@@ -299,23 +297,27 @@ void OpenMani::publishCallback(const ros::TimerEvent&)
 	if (box_id == DETECT_SMALL_BOX)
 	{
 		pick_large_box_count = 0; wait_bot_count = 0; release_box_count = 0;
-		Pick_Up_Small_Box();
+		ros::Timer small_box_timer = n.createTimer(ros::Duration(4), &OpenMani::Pick_Up_Small_Box, this);
+		//Pick_Up_Small_Box();
 	}
 
 	else if (box_id == DETECT_LARGE_BOX)
 	{
 		small_box_count = 0; wait_bot_count = 0; release_box_count = 0;
-		Pick_Up_Large_Box();
+		ros::Timer large_box_timer = n.createTimer(ros::Duration(4), &OpenMani::Pick_Up_Large_Box, this);
+		//Pick_Up_Large_Box();
 	}
 
 	else if (mode == WAIT_BOT)
 	{
 		small_box_count = 0; pick_large_box_count = 0; release_box_count = 0;
-		Wait_Bot();
+		ros::Timer wait_bot_timer = n.createTimer(ros::Duration(4), &OpenMani::Wait_Bot, this);
+		//Wait_Bot();
 	}
 	else if (mode == RELEASE_BOX)
 	{
 		small_box_count = 0; pick_large_box_count = 0; wait_bot_count = 0;
+		ros::Timer release_box_timer = n.createTimer(ros::Duration(4), &OpenMani::Release_Box, this);
 		Release_Box();
 	}
 }
@@ -333,7 +335,7 @@ int main(int argc, char **argv){
 	
 	ros::NodeHandle nh("");
 	
-	ros::Timer publish_timer = nh.createTimer(ros::Duration(4), &OpenMani::publishCallback, &Openmani);
+	ros::Timer publish_timer = nh.createTimer(ros::Duration(0.1), &OpenMani::publishCallback, &Openmani);
 	
 	while (ros::ok())
 	{

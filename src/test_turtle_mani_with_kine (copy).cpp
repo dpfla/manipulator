@@ -151,7 +151,7 @@ bool OpenMani::setToolControl(std::vector<double> joint_angle)
 	return true;  
 }
 
-void OpenMani::Pick_Up_Small_Box()
+void OpenMani::Pick_Up_Small_Box(const ros::TimerEvent&)
 {
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
@@ -163,6 +163,7 @@ void OpenMani::Pick_Up_Small_Box()
 		kinematics_position.push_back( 0.085);*/
 		setTaskSpacePath(kinematic_pose_sub, 2.0);
 		small_box_count ++;
+		kinematic_pose_sub.clear();
 		ROS_INFO("case 0");
 		break;
 		
@@ -194,7 +195,7 @@ void OpenMani::Pick_Up_Small_Box()
 	}
 }
 
-void OpenMani::Pick_Up_Large_Box()
+void OpenMani::Pick_Up_Large_Box(const ros::TimerEvent&)
 {
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
@@ -206,6 +207,7 @@ void OpenMani::Pick_Up_Large_Box()
 		kinematics_position.push_back( 0.085);*/
 		setTaskSpacePath(kinematic_pose_sub, 2.0);
 		pick_large_box_count ++;
+		kinematic_pose_sub.clear();
 		break;
 		
 	case 1:
@@ -226,7 +228,7 @@ void OpenMani::Pick_Up_Large_Box()
 	}
 }
 
-void OpenMani::Wait_Bot()
+void OpenMani::Wait_Bot(const ros::TimerEvent&)
 {
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
@@ -259,7 +261,7 @@ void OpenMani::Wait_Bot()
 }
 
 
-void OpenMani::Release_Box()
+void OpenMani::Release_Box(const ros::TimerEvent&)
 {
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
@@ -299,23 +301,27 @@ void OpenMani::publishCallback(const ros::TimerEvent&)
 	if (box_id == DETECT_SMALL_BOX)
 	{
 		pick_large_box_count = 0; wait_bot_count = 0; release_box_count = 0;
-		Pick_Up_Small_Box();
+		ros::Timer small_box_timer = n.createTimer(ros::Duration(4), &OpenMani::Pick_Up_Small_Box, this);
+		//Pick_Up_Small_Box();
 	}
 
 	else if (box_id == DETECT_LARGE_BOX)
 	{
 		small_box_count = 0; wait_bot_count = 0; release_box_count = 0;
-		Pick_Up_Large_Box();
+		ros::Timer large_box_timer = n.createTimer(ros::Duration(4), &OpenMani::Pick_Up_Large_Box, this);
+		//Pick_Up_Large_Box();
 	}
 
 	else if (mode == WAIT_BOT)
 	{
 		small_box_count = 0; pick_large_box_count = 0; release_box_count = 0;
-		Wait_Bot();
+		ros::Timer wait_bot_timer = n.createTimer(ros::Duration(4), &OpenMani::Wait_Bot, this);
+		//Wait_Bot();
 	}
 	else if (mode == RELEASE_BOX)
 	{
 		small_box_count = 0; pick_large_box_count = 0; wait_bot_count = 0;
+		ros::Timer release_box_timer = n.createTimer(ros::Duration(4), &OpenMani::Release_Box, this);
 		Release_Box();
 	}
 }
