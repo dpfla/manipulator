@@ -10,6 +10,7 @@
 #include "test_turtle_mani/PoseMsg.h"
 #include <sstream>
 
+#include <time.h>
 #include <eigen3/Eigen/Eigen>
 
 #include <geometry_msgs/Pose.h>
@@ -49,11 +50,14 @@ private:
 	int count;
 	int bot_ready;
 	int ar_marker_id;
+	double moving_time;
 	std_msgs::String current_mani_state;
 	std::string planning_group_name;
 	std::string planning_group_name2;
 	moveit::planning_interface::MoveGroupInterface* move_group_;
 	moveit::planning_interface::MoveGroupInterface* move_group2_;
+	moveit::planning_interface::MoveGroupInterface::Plan my_plan_gripper;
+	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	ros::Subscriber kinematic_pose_sub_;
 	ros::Subscriber ar_marker_sub_;
 	ros::Subscriber lift_bot_state_sub_;
@@ -77,6 +81,6 @@ public:
 	void Release_Box();
 	void Pick_Up_Small_Box();
 	void Pick_Up_Large_Box();
-	void demoSequence(const ros::TimerEvent&);
+	void demoSequence();
 };
 	
