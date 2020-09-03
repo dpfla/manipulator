@@ -240,9 +240,6 @@ add_executable(test_turtle_mani_with_kine src/test_turtle_mani_with_kine.cpp)
 add_dependencies(test_turtle_mani_with_kine ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(test_turtle_mani_with_kine ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
-add_executable(test_turtle_mani_without_timer src/test_turtle_mani_without_timer.cpp)
-add_dependencies(test_turtle_mani_without_timer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_turtle_mani_without_timer ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})

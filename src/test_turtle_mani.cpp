@@ -4,11 +4,12 @@ std::vector<double> kinematic_pose_sub;
 std::vector<double> kinematic_pose_check;
 std::vector<double> temp_position;
 ros::Publisher pub_;
+int cur_time;
 
 OpenMani::OpenMani()
 :n(""),
  count(0),
- mode(2),
+ count_t(0),
  moving_time(0.0)
 {
 	joint_name.push_back("joint1");
@@ -24,8 +25,6 @@ OpenMani::OpenMani()
 	
 	move_group_ = new moveit::planning_interface::MoveGroupInterface(planning_group_name);
 	move_group2_ = new moveit::planning_interface::MoveGroupInterface(planning_group_name2);
-
-
 }
 
 
@@ -61,6 +60,8 @@ bool OpenMani::setJointSpacePath(std::vector<double> kinematics_pose, double pat
 
 	move_group_->move();
 
+	cur_time = time(0);
+
 	spinner.stop();
 	return true;
 	}
@@ -85,10 +86,13 @@ bool OpenMani::setToolControl(std::vector<double> joint_angle)
 
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	bool success = (move_group2_->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
 	if (success == false)
 		return false;
 
 	move_group2_->move();
+
+	cur_time = time(0);
 
 	spinner.stop();
 	return true;  
@@ -103,6 +107,8 @@ void OpenMani::updateRobotState()
 	std::vector<double> jointValues = move_group_->getCurrentJointValues();
 	std::vector<double> jointValues2 = move_group2_->getCurrentJointValues();
 	std::vector<double> temp_angle;
+	std::vector<double> temp_position;
+
 	temp_angle.push_back(jointValues.at(0));
 	temp_angle.push_back(jointValues.at(1));
 	temp_angle.push_back(jointValues.at(2));
@@ -134,44 +140,73 @@ void OpenMani::demoSequence()
 	std::vector<double> kinematics_position;
 	std::vector<double> kinematics_orientation;
 	std::vector<double> gripper_value;
-	bool task_result_;
+	int add_time = 0;
+	
 
 	switch(count){
 	case 0: // home pose
-		kinematics_position.push_back(0.047 );
-		kinematics_position.push_back( 0.000 );
-		kinematics_position.push_back( 0.34 );
-		setJointSpacePath(kinematics_position, 2.0);
-
-		if (task_result_)
+		if(count_t == 0)
 		{
-			count ++;
+			kinematics_position.push_back( 0.270 );	
+			kinematics_position.push_back( 0.000 );
+			kinematics_position.push_back( 0.085 );
+			setJointSpacePath(kinematics_position, 2.0);
+			count_t = 1;
 			ROS_INFO("case 0");
 		}
+
+		add_time = time(0);
+		if((add_time-cur_time) >= 6)
+			count ++;
+			
 		break;
 		
-	/*case 1:
-		joint_angle.push_back(-0.01);
-		setToolControl(joint_angle);
-		count++;
-		ROS_INFO("case 1");
+	case 1:
+		if(count_t == 1)
+		{
+			joint_angle.push_back(0.01);
+			setToolControl(joint_angle);
+			count_t = 0;
+			ROS_INFO("case 1");
+		}
+
+		add_time = time(0);
+		if((add_time-cur_time) >= 1)
+			count ++;
+			
 		break;
 
 	case 2: // initial pose
-		kinematics_position.push_back( 0.00);
-		kinematics_position.push_back( 0.00);
-		kinematics_position.push_back( 0.085);
-		setJointSpacePath(kinematic_pose_sub, 2.0);
-		count ++;
-		ROS_INFO("case 2");
+		if(count_t == 0)
+		{
+			kinematics_position.push_back( 0.047 );
+			kinematics_position.push_back( 0.000 );
+			kinematics_position.push_back( 0.337 );
+			setJointSpacePath(kinematics_position, 2.0);
+			count_t = 1;
+			ROS_INFO("case 2");
+		}
+
+		add_time = time(0);
+		if((add_time-cur_time) >= 6)
+			count ++;
+			
 		break;
 
 	case 3:
-		joint_angle.push_back(0.01);
-		setToolControl(joint_angle);
-		count=0;
-		ROS_INFO("case 3");
-		break;*/
+		if(count_t == 1)
+		{
+			joint_angle.push_back(-0.01);
+			setToolControl(joint_angle);
+			count_t = 0;
+			ROS_INFO("case 1");
+		}
+
+		add_time = time(0);
+		if((add_time-cur_time) >= 1)
+			count ++;
+			
+		break;
 	}
 }
 
@@ -222,10 +257,10 @@ int main(int argc, char **argv){
 	ros::NodeHandle nh("");
 	
 	ROS_INFO("11");
-	ros::Timer publish_timer = nh.createTimer(ros::Duration(1), &OpenMani::publishCallback, &OpenMani);
-	ros::Subscriber check_sub_ = nh.subscribe("rvecs_msg", 10, CheckCallback);
+	ros::Timer publish_timer = nh.createTimer(ros::Duration(0.1), &OpenMani::publishCallback, &OpenMani);
+	//ros::Subscriber check_sub_ = nh.subscribe("rvecs_msg", 10, CheckCallback);
 	//ros::Subscriber sub_ = nh.subscribe("cur_mani", 10, PoseCallback);
-	pub_ = nh.advertise<geometry_msgs::Pose>("cur_pose", 1000);
+	//pub_ = nh.advertise<geometry_msgs::Pose>("cur_pose", 1000);
 	ROS_INFO("11");
 	//ros::start();
 	while (ros::ok())

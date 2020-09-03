@@ -46,8 +46,8 @@ private:
 	int pick_large_box_count;
 	int wait_bot_count;
 	int release_box_count;
-	int mode;
 	int count;
+	int count_t;
 	int bot_ready;
 	int ar_marker_id;
 	double moving_time;

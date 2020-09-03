@@ -51,6 +51,8 @@ private:
 	int bot_ready;
 	int arrive_home;
 	int box_id;
+	int cur_time;
+	int count_t;
 	std_msgs::Int32 current_mani_state;
 	std_msgs::Int32 box_pick_up_complete;
 	std::string planning_group_name;
@@ -64,6 +66,7 @@ private:
 	ros::Subscriber lift_bot_state_sub_;
 	ros::Publisher current_mani_state_pub_;
 	ros::Publisher box_pick_up_complete_pub_;
+	ros::Publisher  current_mani_pose_pub_;
 	
 public:
 	OpenMani();
@@ -72,6 +75,7 @@ public:
 	bool setJointSpacePath(std::vector<float> kinematics_pose, double path_time);
 	bool setToolControl(std::vector<double> joint_angle);
 	bool setTaskSpacePath(std::vector<double> kinematics_pose, double path_time);
+	void updateRobotState();
 	void init();
 	void Arrive_Home_Callback(const test_turtle_mani::Msg &msg);
 	void Box_ID_Callback(const test_turtle_mani::Msg &msg);
